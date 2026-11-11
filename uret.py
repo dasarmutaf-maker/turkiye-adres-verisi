@@ -28,7 +28,7 @@ TR_SIRA = "aâbcçdefgğhıiîjklmnoöprsştuüûvyz"
 
 def tr_anahtar(metin):
     """Türkçe alfabeye göre sıralama anahtarı (İ/ı doğru yere düşsün)."""
-    m = metin.lower().replace("i̇", "i")
+    m = metin.replace("I", "ı").replace("İ", "i").lower()
     return [TR_SIRA.index(h) if h in TR_SIRA else 100 + ord(h) for h in m]
 
 
@@ -42,8 +42,24 @@ def indir(ad):
         return json.load(f)
 
 
+# PTT kaynağında büyük "İ" hiç yok, hepsi "I" olmuş ("Inönü", "Istiklal").
+# Kelime başındaki I: ilk ünlü "ı" ise gerçekten I (Ilıca, Işık, Iğdır),
+# değilse İ (İnönü, İstasyon, İmam). Kurala uymayan gerçek I kökleri:
+GERCEK_I = ("Ihlamur", "Irmak", "Ilgaz", "Ilgar", "Ilgayır", "Islak", "Irgat",
+            "Irgut", "Irlamaz", "Isot", "Izgar", "Isparta")
+UNLU = "aâeıiîoöuüû"
+
+
+def i_duzelt(kelime):
+    if not kelime.startswith("I") or kelime.startswith(GERCEK_I):
+        return kelime
+    ilk = next((h for h in kelime[1:].lower() if h in UNLU), "")
+    return kelime if ilk == "ı" else "İ" + kelime[1:]
+
+
 def temizle(ad):
     ad = re.sub(r"\s+", " ", ad).strip()
+    ad = re.sub(r"(?<![^\s(])I[^\s()]*", lambda m: i_duzelt(m.group(0)), ad)
     ad = ad.replace(" (", " (").replace("( ", "(").replace(" )", ")")
     return ad
 
